@@ -1,61 +1,100 @@
+import asyncio
 from enum import Enum
+
+import yt_dlp as youtube_dl
 
 import discord
 from discord.ext import commands
 
+youtube_dl.utils.bug_reports_message = lambda: ""
 
-class Music(commands.Cog):
+ytdl_format_options = {
+    "format": "bestaudio/best",
+    "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
+    "restrictfilenames": True,
+    "noplaylist": True,
+    "nocheckcertificate": True,
+    "ignoreerrors": False,
+    "logtostderr": False,
+    "quiet": True,
+    "no_warnings": True,
+    "default_search": "auto",
+    "source_address": (
+        "0.0.0.0"
+    ),  # Bind to ipv4 since ipv6 addresses cause issues at certain times
+}
+
+ffmpeg_options = {"options": "-vn"}
+
+ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source: discord.AudioSource, *, data: dict, volume: float = 0.5):
+        super().__init__(source, volume)
+
+        self.data = data
+
+        self.title = data.get("title")
+        self.url = data.get("url")
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(
+            None, lambda: ytdl.extract_info(url, download=not stream)
+        )
+
+        if "entries" in data:
+            # Takes the first item from a playlist
+            data = data["entries"][0]
+
+        filename = data["url"] if stream else ytdl.prepare_filename(data)
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options, executable=r"C:\Users\alcam\OneDrive\Documents\Developpement\ffmpeg\ffmpeg-2023-06-21-git-1bcb8a7338-full_build\bin\ffmpeg.exe"), data=data)
+
+
+class Voice(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.connections = {}
 
-    class Sinks(Enum):
-        mp3 = discord.sinks.MP3Sink()
-        wav = discord.sinks.WaveSink()
-        pcm = discord.sinks.PCMSink()
-        ogg = discord.sinks.OGGSink()
-        mka = discord.sinks.MKASink()
-        mkv = discord.sinks.MKVSink()
-        mp4 = discord.sinks.MP4Sink()
-        m4a = discord.sinks.M4ASink()
+    @commands.slash_command(name="play")
+    async def play(self, ctx: commands.Context, *, url: str):
+        """Plays from a url (almost anything youtube_dl supports)"""
 
-    async def finished_callback(self, sink, channel: discord.TextChannel, *args):
-        recorded_users = [f"<@{user_id}>" for user_id, audio in sink.audio_data.items()]
-        await sink.vc.disconnect()
-        files = [
-            discord.File(audio.file, f"{user_id}.{sink.encoding}")
-            for user_id, audio in sink.audio_data.items()
-        ]
-        await channel.send(
-            f"Finished! Recorded audio for {', '.join(recorded_users)}.", files=files
-        )
+        async with ctx.typing():
+            player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+            ctx.voice_client.play(
+                player, after=lambda e: print(f"Player error: {e}") if e else None
+            )
 
-    @commands.command()
-    async def start(self, ctx: discord.ApplicationContext, sink: Sinks):
-        """Record your voice!"""
-        voice = ctx.author.voice
+        await ctx.send(f"Now playing: {player.title}")
 
-        if not voice:
-            return await ctx.respond("You're not in a vc right now")
+    @play.before_invoke
+    async def ensure_voice(self, ctx: commands.Context):
+        if ctx.voice_client is None:
+            if ctx.author.voice:
+                await ctx.author.voice.channel.connect()
+            else:
+                await ctx.send("You are not connected to a voice channel.")
+                raise commands.CommandError("Author not connected to a voice channel.")
+        elif ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
 
-        vc = await voice.channel.connect()
-        self.connections.update({ctx.guild.id: vc})
+    @commands.slash_command(name="join")
+    async def join(self, ctx: discord.ApplicationContext):
+        author: discord.Member = ctx.author
+        voice_channel = author.voice.channel
+        await voice_channel.connect()
+        await ctx.respond("Connecté")
 
-        vc.start_recording(
-            sink.value,
-            self.finished_callback,
-            ctx.channel,
-        )
-
-        await ctx.respond("The recording has started!")
-
-    @commands.command()
+    @commands.slash_command(name="stop")
     async def stop(self, ctx: discord.ApplicationContext):
-        """Stop recording."""
-        if ctx.guild.id in self.connections:
-            vc = self.connections[ctx.guild.id]
-            vc.stop_recording()
-            del self.connections[ctx.guild.id]
-            await ctx.delete()
-        else:
-            await ctx.respond("Not recording in this guild.")
+        await ctx.voice_client.disconnect(force=True)
+        await ctx.respond("Déconnecté")
+
+
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Voice(bot))

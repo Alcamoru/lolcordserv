@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from moderation import Moderation
-from voice import Music
+from voice import Voice
 
 intents = discord.Intents.all()
 
@@ -10,6 +10,7 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), description="
 
 bot.load_extension("lolcommands")
 bot.load_extension("moderation")
+bot.load_extension("voice")
 
 
 @bot.slash_command(name="test")
@@ -20,7 +21,6 @@ async def test(ctx):
 @bot.event
 async def on_ready():
     commands_channel: discord.TextChannel = bot.get_channel(1118494266482770030)
-    bot.add_cog(Music(bot))
     ready_embed = discord.Embed(title="Statut du bot", description="Le bot est prêt")
     await commands_channel.send(embed=ready_embed)
     print("OK")

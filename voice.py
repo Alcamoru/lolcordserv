@@ -1,10 +1,12 @@
 import asyncio
-from enum import Enum
-
-import yt_dlp as youtube_dl
-
 import discord
 from discord.ext import commands
+
+import yt_dlp as youtube_dl
+import speech_recognition as sr
+
+r = sr.Recognizer()
+
 
 youtube_dl.utils.bug_reports_message = lambda: ""
 
@@ -50,7 +52,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data["entries"][0]
 
         filename = data["url"] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options, executable=r"C:\Users\alcam\OneDrive\Documents\Developpement\ffmpeg\ffmpeg-2023-06-21-git-1bcb8a7338-full_build\bin\ffmpeg.exe"), data=data)
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options,
+                                          executable=r"C:\Users\alcam\OneDrive\Documents\Developpement"
+                                                     r"\ffmpeg\ffmpeg-2023-06-21-git-1"
+                                                     r"bcb8a7338-full_build\bin\ffmpeg.exe"), data=data)
 
 
 class Voice(commands.Cog):
@@ -60,8 +65,6 @@ class Voice(commands.Cog):
 
     @commands.slash_command(name="play")
     async def play(self, ctx: commands.Context, *, url: str):
-        """Plays from a url (almost anything youtube_dl supports)"""
-
         async with ctx.typing():
             player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
             ctx.voice_client.play(
@@ -92,8 +95,6 @@ class Voice(commands.Cog):
     async def stop(self, ctx: discord.ApplicationContext):
         await ctx.voice_client.disconnect(force=True)
         await ctx.respond("Déconnecté")
-
-
 
 
 def setup(bot: commands.Bot):

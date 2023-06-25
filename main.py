@@ -5,6 +5,7 @@ from moderation import Moderation
 from voice import Voice
 
 intents = discord.Intents.all()
+intents.voice_states = True
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), description="Test description", intents=intents)
 

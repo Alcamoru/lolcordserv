@@ -1,11 +1,9 @@
 import asyncio
 import discord
 from discord.ext import commands
+from youtubesearchpython import VideosSearch
 
 import yt_dlp as youtube_dl
-import speech_recognition as sr
-
-r = sr.Recognizer()
 
 
 youtube_dl.utils.bug_reports_message = lambda: ""
@@ -53,9 +51,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         filename = data["url"] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options,
-                                          executable=r"C:\Users\alcam\OneDrive\Documents\Developpement"
-                                                     r"\ffmpeg\ffmpeg-2023-06-21-git-1"
-                                                     r"bcb8a7338-full_build\bin\ffmpeg.exe"), data=data)
+                                          executable=r"C:\Users\alcam\OneDrive\Documents\Developpement\ffmpeg\ffmpeg-2023-06-21-git-1bcb8a7338-full_build\bin\ffmpeg.exe"), data=data)
 
 
 class Voice(commands.Cog):
@@ -64,7 +60,9 @@ class Voice(commands.Cog):
         self.connections = {}
 
     @commands.slash_command(name="play")
-    async def play(self, ctx: commands.Context, *, url: str):
+    async def play(self, ctx: commands.Context, words):
+        videosSearch = VideosSearch(words, limit=1, region="EU")
+        url = videosSearch.result()["result"][0]["link"]
         async with ctx.typing():
             player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
             ctx.voice_client.play(

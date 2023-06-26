@@ -71,6 +71,24 @@ class Voice(commands.Cog):
 
         await ctx.send(f"Now playing: {player.title}")
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        voice_client = discord.utils.get(self.bot.voice_clients, guild=self.bot.get_guild(1117482753076776982))
+        if before.channel is None and after.channel is not None:
+            # L'utilisateur a rejoint un canal vocal
+            voice_channel: discord.VoiceChannel = after.channel
+            if not voice_client:
+                await voice_channel.connect(reconnect=True)
+                print(f"Le bot s'est connecté au canal vocal {voice_channel.name}")
+
+        elif before.channel is not None and after.channel is None:
+            # L'utilisateur a quitté un canal vocal
+            channel: discord.VoiceChannel = before.channel
+            if voice_client is not None and voice_client.channel == before.channel:
+                if len(channel.members) <= 1:
+                    await voice_client.disconnect(force=True)
+                    print(f"Le bot s'est déconnecté du canal vocal {before.channel.name}")
+
     @play.before_invoke
     async def ensure_voice(self, ctx: commands.Context):
         if ctx.voice_client is None:

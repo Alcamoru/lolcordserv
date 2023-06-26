@@ -5,18 +5,12 @@ from moderation import Moderation
 from voice import Voice
 
 intents = discord.Intents.all()
-intents.voice_states = True
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), description="Test description", intents=intents)
 
 bot.load_extension("lolcommands")
 bot.load_extension("moderation")
 bot.load_extension("voice")
-
-
-@bot.slash_command(name="test")
-async def test(ctx):
-    await ctx.respond("test")
 
 
 @bot.event

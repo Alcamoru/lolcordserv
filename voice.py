@@ -1,10 +1,9 @@
 import asyncio
+
 import discord
+import yt_dlp as youtube_dl
 from discord.ext import commands
 from youtubesearchpython import VideosSearch
-
-import yt_dlp as youtube_dl
-
 
 youtube_dl.utils.bug_reports_message = lambda: ""
 
@@ -51,7 +50,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         filename = data["url"] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options,
-                                          executable=r"C:\Users\alcam\OneDrive\Documents\Developpement\ffmpeg\ffmpeg-2023-06-21-git-1bcb8a7338-full_build\bin\ffmpeg.exe"), data=data)
+                                          executable=r"C:\Users\alcam\OneDrive\Documents\Developpement\ffmpeg\ffmpeg-2023-06-21-git-1bcb8a7338-full_build\bin\ffmpeg.exe"),
+                   data=data)
 
 
 class Voice(commands.Cog):
@@ -72,7 +72,8 @@ class Voice(commands.Cog):
         await ctx.send(f"Now playing: {player.title}")
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState,
+                                    after: discord.VoiceState):
         voice_client = discord.utils.get(self.bot.voice_clients, guild=self.bot.get_guild(1117482753076776982))
         if before.channel is None and after.channel is not None:
             # L'utilisateur a rejoint un canal vocal

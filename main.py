@@ -1,9 +1,6 @@
 import discord
 from discord.ext import commands
 
-from moderation import Moderation
-from voice import Voice
-
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), description="Test description", intents=intents)
@@ -19,6 +16,7 @@ async def on_ready():
     ready_embed = discord.Embed(title="Statut du bot", description="Le bot est prêt")
     await commands_channel.send(embed=ready_embed)
     print("OK")
+
 
 with open("DISCORD_TOKEN.txt", "r") as infile:
     DISCORD_TOKEN = infile.read()

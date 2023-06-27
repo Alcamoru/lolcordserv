@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from pprint import pprint
 
 import discord
 import requests
@@ -31,6 +30,7 @@ class Lolbot(commands.Cog):
         self.watcher = LolWatcher(api_key=RIOT_TOKEN)
         self.region = "euw1"
 
+    @commands.has_role("LOLEUR")
     @commands.slash_command(name="profil", description="Profil du joueur")
     @option("invocateur", description="Entrez votre nom d'invocateur")
     async def profil(self, ctx: discord.ApplicationContext, invocateur):
@@ -94,6 +94,7 @@ class Lolbot(commands.Cog):
         embed_profile.add_field(name="Historique des matchs", value=value, inline=False)
         await ctx.respond(embed=embed_profile, file=file)
 
+    @commands.has_role("LOLEUR")
     @commands.slash_command(name="derniermatch", description="Dernier match du joueur")
     async def derniermatch(self, ctx: discord.ApplicationContext, invocateur):
         account = self.watcher.summoner.by_name(self.region, invocateur)

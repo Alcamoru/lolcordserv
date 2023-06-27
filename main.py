@@ -3,6 +3,7 @@ from discord.ext import commands
 
 intents = discord.Intents.all()
 
+# noinspection PyTypeChecker
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), description="Test description", intents=intents)
 
 bot.load_extension("lolcommands")
@@ -12,10 +13,11 @@ bot.load_extension("voice")
 
 @bot.event
 async def on_ready():
-    commands_channel: discord.TextChannel = bot.get_channel(1118494266482770030)
+    guild = bot.get_guild(1117482753076776982)
+    moderation_channel: discord.TextChannel = guild.get_channel(1119542979896557600)
     ready_embed = discord.Embed(title="Statut du bot", description="Le bot est prêt")
-    await commands_channel.send(embed=ready_embed)
-    print("OK")
+    await moderation_channel.send(embed=ready_embed)
+    print("Bot pret")
 
 
 with open("DISCORD_TOKEN.txt", "r") as infile:

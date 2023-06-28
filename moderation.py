@@ -1,23 +1,11 @@
 import discord
 
 from discord.ext import commands
-from discord.ui import Item
 
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
-
-    class AnnouncementsButton(discord.ui.View):
-        def __init__(self, bot, *items: Item):
-            super().__init__(*items)
-            announcement_button = \
-                discord.ui.Button(label="Accéder aux rôles", style=discord.ButtonStyle.link,
-                                  emoji="✅",
-                                  url="https://discord.com/channels/1117482753076776982/1119546314007519302",
-                                  )
-            self.add_item(announcement_button)
-            self.bot: commands.Bot = bot
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):

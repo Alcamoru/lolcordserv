@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from pprint import pprint
 
 import discord
 import requests
@@ -10,9 +9,6 @@ from riotwatcher import LolWatcher
 
 with open("RIOT_TOKEN.txt", "r") as infile:
     RIOT_TOKEN = infile.read()
-
-async def is_bot_channel(ctx: commands.Context):
-    return ctx.channel.id == 1118494266482770030
 
 
 def soloq_or_flex(summoner: list):
@@ -26,28 +22,29 @@ def soloq_or_flex(summoner: list):
     return soloq, flex
 
 
+def get_player_data(name, match):
+    for player in match["info"]["participants"]:
+        if player["summonerName"] == name:
+            deaths = player["deaths"]
+            kills = player["kills"]
+            assists = player["assists"]
+            champion = player["championName"]
+            win = player["win"]
+            team_id = player["teamId"]
+            all_kills = None
+            for team in match["info"]["teams"]:
+                if team["teamId"] == team_id:
+                    all_kills = team["objectives"]["champion"]["kills"]
+            kp = round(kills / all_kills * 100)
+            return [deaths, kills, assists, champion, win, team_id, kp]
+
+
 class Lolbot(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
         self.watcher = LolWatcher(api_key=RIOT_TOKEN)
         self.region = "euw1"
         self.guild = self.bot.get_guild(1117482753076776982)
-
-    def get_player_data(self, name, match):
-        for player in match["info"]["participants"]:
-            if player["summonerName"] == name:
-                deaths = player["deaths"]
-                kills = player["kills"]
-                assists = player["assists"]
-                champion = player["championName"]
-                win = player["win"]
-                team_id = player["teamId"]
-                for team in match["info"]["teams"]:
-                    if team["teamId"] == team_id:
-                        all_kills = team["objectives"]["champion"]["kills"]
-                kp = round(kills / all_kills * 100)
-                return [deaths, kills, assists, champion, win, team_id, kp]
-
 
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="profil", description="Profil du joueur")
@@ -58,7 +55,8 @@ class Lolbot(commands.Cog):
 
         soloq, flex = soloq_or_flex(summoner)
 
-        embed_profile = discord.Embed(title=f"{account['name']}", description=f'Niveau: {account["summonerLevel"]}',)
+        embed_profile = discord.Embed(title=f"{account['name']}", description=f'Niveau: {account["summonerLevel"]}',
+                                      color=discord.Color.from_rgb(35, 209, 80))
         file = discord.File(f"media/ranked-emblem/emblem-{soloq['tier']}.png", filename=f"emblem.png")
 
         embed_profile.set_author(name="Profil", icon_url=f"attachment://emblem.png")
@@ -92,13 +90,11 @@ class Lolbot(commands.Cog):
                     date_unit = "heure"
                 else:
                     date_unit = "heures"
-            deaths, kills, assists, champion, win, team_id, kp = self.get_player_data(account["name"], match)
+            deaths, kills, assists, champion, win, team_id, kp = get_player_data(account["name"], match)
             matches += f"**Il y a {match_was} {date_unit}: -->** {champion}: {kills}/{deaths}/{assists}: " \
                        f"{'Victoire' if win else 'Défaite'}\n"
         embed_profile.add_field(name="Historique des matchs", value=matches, inline=False)
         await ctx.respond(embed=embed_profile, file=file)
-
-
 
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="derniermatch", description="Dernier match du joueur")
@@ -115,9 +111,10 @@ class Lolbot(commands.Cog):
             if queue["queueId"] == queue_id:
                 description = queue["description"].replace(" games", "")
 
-        embed_last = discord.Embed(title="Alcamoru", description=description)
+        embed_last = discord.Embed(title=f"{invocateur}", description=description,
+                                   color=discord.Color.from_rgb(35, 209, 80))
 
-        deaths, kills, assists, champion, win, team_id, kp = self.get_player_data(account["name"], last_match)
+        deaths, kills, assists, champion, win, team_id, kp = get_player_data(account["name"], last_match)
 
         embed_last.set_thumbnail(url=f"http://ddragon.leagueoflegends.com/cdn/13.12.1/img/champion/{champion}.png")
         embed_last.add_field(name="KDA", value=f"{kills} kills, {deaths} deaths, {assists} assists")
@@ -129,8 +126,11 @@ class Lolbot(commands.Cog):
         blue_side_damages = ""
         red_side_damages = ""
 
+        blue_side_win = None
+        red_side_win = None
+
         for team in last_match["info"]["teams"]:
-            if team["teamId"] == 100 and team["win"] == True:
+            if team["teamId"] == 100 and team["win"]:
                 blue_side_win = True
                 red_side_win = False
             else:
@@ -141,8 +141,6 @@ class Lolbot(commands.Cog):
             deaths = player["deaths"]
             kills = player["kills"]
             assists = player["assists"]
-            champion = player["championName"]
-            win = player["win"]
             team_id = player["teamId"]
             role = player["teamPosition"]
             damages = player["totalDamageDealtToChampions"]
@@ -155,7 +153,7 @@ class Lolbot(commands.Cog):
                 red_side_kda += f"- ``{kills}/{deaths}/{assists}`` : {round((kills + assists) / deaths, 2)} KDA\n"
                 red_side_damages += f"- ``{damages}``\n"
 
-        embed_last.add_field(name=f"Blue team ({'Victoire' if blue_side_win else 'Défaite'})", value=blue_side_field)
+        embed_last.add_field(name=f"Blue team ({'Victoire' if  blue_side_win else 'Défaite'})", value=blue_side_field)
         embed_last.add_field(name="KDA", value=blue_side_kda)
         embed_last.add_field(name="Dégats", value=blue_side_damages)
         embed_last.add_field(name=f"Red team ({'Victoire' if red_side_win else 'Défaite'})", value=red_side_field)

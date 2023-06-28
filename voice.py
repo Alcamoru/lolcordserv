@@ -45,12 +45,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
         )
 
         if "entries" in data:
-            # Takes the first item from a playlist
             data = data["entries"][0]
 
         filename = data["url"] if stream else ytdl.prepare_filename(data)
+        executable = r"C:\Users\alcam\OneDrive\Documents\Developpement\ffmpeg\ffmpeg-2023-06-21-git-1bcb8a7338-full_" \
+                     r"build\bin\ffmpeg.exe"
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options,
-                                          executable=r"C:\Users\alcam\OneDrive\Documents\Developpement\ffmpeg\ffmpeg-2023-06-21-git-1bcb8a7338-full_build\bin\ffmpeg.exe"),
+                                          executable=executable),
                    data=data)
 
 
@@ -61,8 +62,9 @@ class Voice(commands.Cog):
 
     @commands.slash_command(name="play")
     async def play(self, ctx: commands.Context, words):
-        videosSearch = VideosSearch(words, limit=1, region="EU")
-        url = videosSearch.result()["result"][0]["link"]
+        vs = VideosSearch(words, limit=1, region="EU")
+        # noinspection PyTypeChecker
+        url = vs.result()["result"][0]["link"]
         async with ctx.typing():
             player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
             ctx.voice_client.play(
@@ -76,14 +78,12 @@ class Voice(commands.Cog):
                                     after: discord.VoiceState):
         voice_client = discord.utils.get(self.bot.voice_clients, guild=self.bot.get_guild(1117482753076776982))
         if before.channel is None and after.channel is not None:
-            # L'utilisateur a rejoint un canal vocal
             voice_channel: discord.VoiceChannel = after.channel
             if not voice_client:
                 await voice_channel.connect(reconnect=True)
                 print(f"Le bot s'est connecté au canal vocal {voice_channel.name}")
 
         elif before.channel is not None and after.channel is None:
-            # L'utilisateur a quitté un canal vocal
             channel: discord.VoiceChannel = before.channel
             if voice_client is not None and voice_client.channel == before.channel:
                 if len(channel.members) <= 1:
@@ -103,6 +103,7 @@ class Voice(commands.Cog):
 
     @commands.slash_command(name="join")
     async def join(self, ctx: discord.ApplicationContext):
+        # noinspection PyTypeChecker
         author: discord.Member = ctx.author
         voice_channel = author.voice.channel
         await voice_channel.connect()

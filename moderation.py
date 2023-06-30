@@ -36,11 +36,12 @@ class Moderation(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         ban_words = ["putes", "connard", "enculé", "pute", "con", "merde"]
-        splited_message = message.content.split(" ")
-        for word in splited_message:
+        split_message = message.content.split(" ")
+        for word in split_message:
             if word in ban_words:
                 embed_bad_word = discord.Embed(title="Modération",
-                                               description=f"Evenement interdit, {message.author.mention}")
+                                               description=f"Evenement interdit, {message.author.mention}",
+                                               color=discord.Color.from_rgb(255, 255, 0))
                 embed_bad_word.add_field(name="Mot banni", value="Vous avez utilisé un mot banni.")
                 await message.channel.send(embed=embed_bad_word)
                 await message.delete(reason="Mot interdit")
@@ -49,14 +50,16 @@ class Moderation(commands.Cog):
     @commands.slash_command(name="suppr", description="Supprimer un certain nombre de messages d'un salon")
     async def suppr(self, ctx: discord.ApplicationContext, n_messages: int):
         channel: discord.TextChannel = ctx.channel
-        embed = discord.Embed(title="Modération", description=f"{n_messages} supprimés")
+        embed = discord.Embed(title="Modération", description=f"{n_messages} supprimés",
+                              color=discord.Color.from_rgb(51, 73, 255))
         await channel.purge(limit=n_messages)
         await ctx.respond(embed=embed)
 
     @commands.has_any_role("Modérateur", "Administrateur")
     @commands.slash_command(name="mute", description="Rend muet l'utilisateur")
     async def mute(self, ctx: discord.ApplicationContext, member: discord.Member, reason):
-        embed = discord.Embed(title="Modération", description="Musellement d'un membre")
+        embed = discord.Embed(title="Modération", description="Musellement d'un membre",
+                              color=discord.Color.from_rgb(255, 255, 0))
         embed.add_field(name="Notification d'expulsion", value=f"{member.mention} a bien été rendu muet pour"
                                                                f" la raison suivante: {reason}")
         guild = self.bot.get_guild(1117482753076776982)
@@ -71,7 +74,8 @@ class Moderation(commands.Cog):
     @commands.has_any_role("Modérateur", "Administrateur")
     @commands.slash_command(name="kick", description="Explusion de l'utilisateur")
     async def kick(self, ctx: discord.ApplicationContext, member: discord.Member, reason):
-        embed_kick = discord.Embed(title="Modération", description="Expulsion d'un membre")
+        embed_kick = discord.Embed(title="Modération", description="Expulsion d'un membre",
+                                   color=discord.Color.from_rgb(255, 255, 0))
         embed_kick.add_field(name="Notification d'expulsion", value=f"{member.mention} a bien été banni du serveur pour"
                                                                     f" la raison suivante {reason}")
         await ctx.respond(embed=embed_kick)
@@ -81,7 +85,8 @@ class Moderation(commands.Cog):
     @commands.has_any_role("Modérateur", "Administrateur")
     @commands.slash_command(name="ban", description="Bannissement de l'utilisateur")
     async def ban(self, ctx: discord.ApplicationContext, member: discord.Member, reason):
-        embed_ban = discord.Embed(title="Modération", description="Bannissement d'un membre")
+        embed_ban = discord.Embed(title="Modération", description="Bannissement d'un membre",
+                                  color=discord.Color.from_rgb(255, 255, 0))
         embed_ban.add_field(name="Notification de bannissement", value=f"{member.mention} a bien été banni pour la"
                                                                        f"raison suivante: {reason}")
         await ctx.respond(embed=embed_ban)

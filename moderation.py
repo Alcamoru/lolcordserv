@@ -7,6 +7,7 @@ class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
 
+    # Called when a reaction is added
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         guild = self.bot.get_guild(1117482753076776982)
@@ -20,6 +21,7 @@ class Moderation(commands.Cog):
                 loleur_role = guild.get_role(1117486329446531195)
                 await user.add_roles(loleur_role)
 
+    # Called when a reaction is removed
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         guild = self.bot.get_guild(1117482753076776982)
@@ -33,6 +35,7 @@ class Moderation(commands.Cog):
                 loleur_role = guild.get_role(1117486329446531195)
                 await user.remove_roles(loleur_role)
 
+    # Called when a message is sent
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         ban_words = ["putes", "connard", "enculé", "pute", "con", "merde"]
@@ -46,6 +49,7 @@ class Moderation(commands.Cog):
                 await message.channel.send(embed=embed_bad_word)
                 await message.delete(reason="Mot interdit")
 
+    # This command remove n messages from a channel
     @commands.has_any_role("Modérateur", "Administrateur")
     @commands.slash_command(name="suppr", description="Supprimer un certain nombre de messages d'un salon")
     async def suppr(self, ctx: discord.ApplicationContext, n_messages: int):
@@ -55,6 +59,7 @@ class Moderation(commands.Cog):
         await channel.purge(limit=n_messages)
         await ctx.respond(embed=embed)
 
+    # This command mutes a user
     @commands.has_any_role("Modérateur", "Administrateur")
     @commands.slash_command(name="mute", description="Rend muet l'utilisateur")
     async def mute(self, ctx: discord.ApplicationContext, member: discord.Member, reason):
@@ -71,6 +76,7 @@ class Moderation(commands.Cog):
         await ctx.respond(embed=embed)
         await member.send(embed=embed)
 
+    # This command kick a user from the server
     @commands.has_any_role("Modérateur", "Administrateur")
     @commands.slash_command(name="kick", description="Explusion de l'utilisateur")
     async def kick(self, ctx: discord.ApplicationContext, member: discord.Member, reason):
@@ -82,6 +88,7 @@ class Moderation(commands.Cog):
         await member.send(embed=embed_kick)
         await member.kick(reason=reason)
 
+    # This command ban a user from the server
     @commands.has_any_role("Modérateur", "Administrateur")
     @commands.slash_command(name="ban", description="Bannissement de l'utilisateur")
     async def ban(self, ctx: discord.ApplicationContext, member: discord.Member, reason):

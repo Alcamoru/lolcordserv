@@ -27,7 +27,15 @@ async def on_ready():
 # Called when an error happens
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error: discord.DiscordException):
-    pass
+    error_embed: discord.Embed = discord.Embed(title="Erreur", description="Une erreur est survenue")
+    if isinstance(error, commands.MissingRole):
+        error_embed.add_field(name="Vous n'avez pas le role requis", value=str(error))
+    elif isinstance(error, commands.CommandOnCooldown):
+        error_embed.add_field(name="La commande est en attente", value=str(error))
+    elif isinstance(error, commands.MissingRequiredArgument):
+        error_embed.add_field(name="Il manque un argument", value=str(error))
+    else:
+        error_embed.add_field(name="Une erreur est survenue", value=str(error))
 
 
 # Token importation

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import TextIO
 
 import discord
 import requests
@@ -7,11 +8,20 @@ from discord.commands import option
 from discord.ext import commands
 from riotwatcher import LolWatcher
 
+
+# Tokens importation
+infile: TextIO
 with open("RIOT_TOKEN.txt", "r") as infile:
     RIOT_TOKEN = infile.read()
 
 
-def soloq_or_flex(summoner: list):
+# Select the queue types (Soloq or Flex)
+def soloq_or_flex(summoner: list) -> tuple:
+    """
+
+    :type summoner: list
+    :rtype: tuple
+    """
     if summoner[0]["queueType"] == "RANKED_SOLO_5x5":
         soloq: dict = summoner[0]
         flex: dict = summoner[1]
@@ -22,34 +32,19 @@ def soloq_or_flex(summoner: list):
     return soloq, flex
 
 
-def get_player_data(name, match):
-    for player in match["info"]["participants"]:
-        if player["summonerName"] == name:
-            deaths = player["deaths"]
-            kills = player["kills"]
-            assists = player["assists"]
-            champion = player["championName"]
-            win = bool(player["win"])
-            team_id = player["teamId"]
-            all_kills = None
-            for team in match["info"]["teams"]:
-                if team["teamId"] == team_id:
-                    all_kills = team["objectives"]["champion"]["kills"]
-            kp = round(kills / all_kills * 100)
-            return [deaths, kills, assists, champion, win, team_id, kp]
-
-
+# Main class for commands
 class Lolbot(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
         self.watcher = LolWatcher(api_key=RIOT_TOKEN)
         self.region = "euw1"
-        self.guild = self.bot.get_guild(1117482753076776982)
+        self.guild: discord.Guild = self.bot.get_guild(1117482753076776982)
 
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="profil", description="Profil du joueur")
-    @option("invocateur", description="Entrez votre nom d'invocateur")
+    @option(name="invocateur", description="Entrez votre nom d'invocateur")
     async def profil(self, ctx: discord.ApplicationContext, invocateur):
+
         account = self.watcher.summoner.by_name(self.region, invocateur)
         summoner = self.watcher.league.by_summoner(self.region, account["id"])
 
@@ -73,10 +68,10 @@ class Lolbot(commands.Cog):
                                       f"{flex['losses']} défaites\n"
                                       f"{flex['wins'] + flex['losses']} Parties jouées\n ")
 
-        matchlist = self.watcher.match.matchlist_by_puuid(self.region, account["puuid"], count=3)
+        match_list = self.watcher.match.matchlist_by_puuid(self.region, account["puuid"], count=3)
         matches = ""
-        for match_id in matchlist[:3]:
-            match = self.watcher.match.by_id(self.region, match_id)
+        for match_id in match_list[:3]:
+            match: dict = self.watcher.match.by_id(self.region, match_id)
             date = datetime.fromtimestamp(int(str(match["info"]["gameStartTimestamp"])[:-3]))
             now = datetime.now()
             match_was = now - date
@@ -90,9 +85,13 @@ class Lolbot(commands.Cog):
                     date_unit = "heure"
                 else:
                     date_unit = "heures"
-            deaths, kills, assists, champion, win, team_id, kp = get_player_data(account["name"], match)
-            matches += f"**Il y a {match_was} {date_unit}: -->** {champion}: {kills}/{deaths}/{assists}: " \
-                       f"{'Victoire' if win else 'Défaite'}\n"
+
+            for player in match["info"]["participants"]:
+                if player["summonerName"] == account["name"]:
+                    win = player["win"]
+                    matches += f"**Il y a {match_was} {date_unit}: -->** {player['championName']}:" \
+                               f" {player['kills']}/{player['deaths']}/{player['assists']}: " \
+                               f"{'Victoire' if win else 'Défaite'}\n"
         embed_profile.add_field(name="Historique des matchs", value=matches, inline=False)
         await ctx.respond(embed=embed_profile, file=file)
 
@@ -100,7 +99,7 @@ class Lolbot(commands.Cog):
     @commands.slash_command(name="derniermatch", description="Dernier match du joueur")
     async def derniermatch(self, ctx: discord.ApplicationContext, invocateur):
         account = self.watcher.summoner.by_name(self.region, invocateur)
-        last_match_id = self.watcher.match.matchlist_by_puuid(self.region, account["puuid"], count=1)[0]
+        last_match_id: str = self.watcher.match.matchlist_by_puuid(self.region, account["puuid"], count=1)[0]
         last_match = self.watcher.match.by_id(self.region, last_match_id)
 
         queue_id = last_match["info"]["queueId"]
@@ -111,7 +110,15 @@ class Lolbot(commands.Cog):
             if queue["queueId"] == queue_id:
                 description = queue["description"].replace(" games", "")
 
-        deaths, kills, assists, champion, win, team_id, kp = get_player_data(account["name"], last_match)
+        player, win, kp = None, None, None
+        for player in last_match["info"]["participants"]:
+            if player["summonerName"] == account["name"]:
+                player = player
+                win = player["win"]
+                for team in last_match["info"]["teams"]:
+                    if team["teamId"] == player["teamId"]:
+                        kp = player["kills"] / team["champion"]["kills"] * 100
+
         if win:
             color = discord.Color.from_rgb(36, 218, 71)
         else:
@@ -119,8 +126,10 @@ class Lolbot(commands.Cog):
         embed_last = discord.Embed(title=f"{invocateur}", description=description,
                                    color=color)
 
-        embed_last.set_thumbnail(url=f"http://ddragon.leagueoflegends.com/cdn/13.12.1/img/champion/{champion}.png")
-        embed_last.add_field(name="KDA", value=f"{kills} kills, {deaths} deaths, {assists} assists")
+        thumbnail_url = f"http://ddragon.leagueoflegends.com/cdn/13.12.1/img/champion/{player['championName']}.png"
+        embed_last.set_thumbnail(url=thumbnail_url)
+        embed_last.add_field(name="KDA", value=f"{player['kills']} kills, {player['deaths']} deaths, "
+                                               f"{player['assists']} assists")
         embed_last.add_field(name="Kill participation", value=f"{kp} % de participation aux éliminations", inline=False)
         blue_side_field = ""
         red_side_field = ""
@@ -133,7 +142,7 @@ class Lolbot(commands.Cog):
         red_side_win = None
 
         for team in last_match["info"]["teams"]:
-            if team["teamId"] == 100 and bool(team["win"]):
+            if int(team["teamId"]) == 100 and bool(team["win"]):
                 blue_side_win = False
                 red_side_win = True
             else:
@@ -141,17 +150,16 @@ class Lolbot(commands.Cog):
                 red_side_win = False
 
         for player in last_match["info"]["participants"]:
-            deaths = player["deaths"]
-            kills = player["kills"]
-            assists = player["assists"]
-            team_id = player["teamId"]
+            deaths = int(player["deaths"])
+            kills = int(player["kills"])
+            assists = int(player["assists"])
             role = player["teamPosition"]
-            damages = player["totalDamageDealtToChampions"]
-            if team_id == 100:
+            damages = int(player["totalDamageDealtToChampions"])
+            if int(player["teamId"]) == 100:
                 blue_side_field += f"- ``{player['summonerName']}`` | {role}\n"
                 blue_side_kda += f"- ``{kills}/{deaths}/{assists}`` : {round((kills + assists) / deaths, 2)} KDA\n"
                 blue_side_damages += f"- ``{damages}``\n"
-            if team_id == 200:
+            if int(player["teamId"]) == 200:
                 red_side_field += f"- ``{player['summonerName']}`` | {role}\n"
                 red_side_kda += f"- ``{kills}/{deaths}/{assists}`` : {round((kills + assists) / deaths, 2)} KDA\n"
                 red_side_damages += f"- ``{damages}``\n"

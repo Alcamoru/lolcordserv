@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
 
+# Discord API Intents
 intents = discord.Intents.all()
 
+# Bot initialization and modules importation
 # noinspection PyTypeChecker
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), description="Test description", intents=intents)
 
@@ -11,6 +13,7 @@ bot.load_extension("moderation")
 bot.load_extension("voice")
 
 
+# Called when the bot is online
 @bot.event
 async def on_ready():
     guild = bot.get_guild(1117482753076776982)
@@ -21,6 +24,13 @@ async def on_ready():
     print("Bot pret")
 
 
+# Called when an error happens
+@bot.event
+async def on_application_command_error(ctx: discord.ApplicationContext, error: discord.DiscordException):
+    pass
+
+
+# Token importation
 with open("DISCORD_TOKEN.txt", "r") as infile:
     DISCORD_TOKEN = infile.read()
 

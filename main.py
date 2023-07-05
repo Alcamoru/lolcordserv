@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+
 # Discord API Intents
 intents = discord.Intents.all()
 
@@ -27,18 +28,21 @@ async def on_ready():
 # Called when an error happens
 # noinspection PyUnreachableCode
 @bot.event
-async def on_application_command_error(ctx: discord.ApplicationContext, error: discord.DiscordException):
-    error_embed: discord.Embed = discord.Embed(title="Erreur", description="Une erreur est survenue")
+async def on_application_command_error(ctx: discord.Interaction, error: discord.DiscordException):
+    error_embed: discord.Embed = discord.Embed(title="Erreur", description="Une erreur est survenue",
+                                               color=discord.Color.red())
     if isinstance(error, commands.MissingRole):
         error_embed.add_field(name="Vous n'avez pas le role requis", value=str(error))
     elif isinstance(error, commands.CommandOnCooldown):
-        error_embed.add_field(name="La commande est en attente", value=str(error))
+        error_embed.add_field(name="La commande est en attente",
+                              value=f"Il vous reste {round(error.cooldown.get_retry_after())}s")
     elif isinstance(error, commands.MissingRequiredArgument):
         error_embed.add_field(name="Il manque un argument", value=str(error))
     else:
         error_embed.add_field(name="Une erreur est survenue", value=str(error))
-    raise error
+        raise error
     await ctx.respond(embed=error_embed)
+
 
 # Token importation
 with open("DISCORD_TOKEN.txt", "r") as infile:

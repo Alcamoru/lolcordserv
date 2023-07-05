@@ -32,6 +32,7 @@ def soloq_or_flex(summoner: list) -> tuple:
 
 
 # Main class for commands
+# noinspection PyTypeChecker
 class Lolbot(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
@@ -44,8 +45,10 @@ class Lolbot(commands.Cog):
     @commands.slash_command(name="profil", description="Profil du joueur")
     @commands.cooldown(1, 120, commands.BucketType.user)
     @option(name="invocateur", description="Entrez votre nom d'invocateur")
-    async def profil(self, ctx: discord.ApplicationContext, invocateur):
+    async def profil(self, ctx: discord.Interaction, invocateur):
 
+        response: discord.InteractionResponse = ctx.response
+        await response.defer(ephemeral=True)
         # Get user information
         account = self.watcher.summoner.by_name(self.region, invocateur)
         summoner = self.watcher.league.by_summoner(self.region, account["id"])
@@ -105,8 +108,10 @@ class Lolbot(commands.Cog):
     # A command to get user's last match information
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="derniermatch", description="Dernier match du joueur")
-    async def derniermatch(self, ctx: discord.ApplicationContext, invocateur):
+    async def derniermatch(self, ctx: discord.Interaction, invocateur):
 
+        response: discord.InteractionResponse = ctx.response
+        await response.defer(ephemeral=True)
         # User information
         account = self.watcher.summoner.by_name(self.region, invocateur)
         last_match_id: str = self.watcher.match.matchlist_by_puuid(self.region, account["puuid"], count=1)[0]
@@ -123,13 +128,13 @@ class Lolbot(commands.Cog):
 
         # Retrieve player data
         player, win, kp = None, None, None
-        for player in last_match["info"]["participants"]:
-            if player["summonerName"] == account["name"]:
-                player = player
-                win = player["win"]
+        for participant in last_match["info"]["participants"]:
+            if str(participant["summonerName"]) == invocateur:
+                player = participant
+                win = participant["win"]
                 for team in last_match["info"]["teams"]:
-                    if team["teamId"] == player["teamId"]:
-                        kp = player["kills"] / team["champion"]["kills"] * 100
+                    if team["teamId"] == participant["teamId"]:
+                        kp = participant["kills"] / team["objectives"]["champion"]["kills"] * 100
 
         if win:
             color = discord.Color.from_rgb(36, 218, 71)
@@ -143,7 +148,7 @@ class Lolbot(commands.Cog):
         thumbnail_url = f"http://ddragon.leagueoflegends.com/cdn/13.12.1/img/champion/{player['championName']}.png"
         embed.set_thumbnail(url=thumbnail_url)
         embed.add_field(name="KDA", value=f"{player['kills']} kills, {player['deaths']} deaths, "
-                                               f"{player['assists']} assists")
+                                          f"{player['assists']} assists")
         embed.add_field(name="Kill participation", value=f"{kp} % de participation aux éliminations", inline=False)
         blue_side_field = ""
         red_side_field = ""

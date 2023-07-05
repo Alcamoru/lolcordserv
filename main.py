@@ -6,7 +6,7 @@ intents = discord.Intents.all()
 
 # Bot initialization and modules importation
 # noinspection PyTypeChecker
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), description="Test description", intents=intents)
+bot = commands.Bot(description="Test description", intents=intents)
 
 bot.load_extension("lolcommands")
 bot.load_extension("moderation")
@@ -25,6 +25,7 @@ async def on_ready():
 
 
 # Called when an error happens
+# noinspection PyUnreachableCode
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error: discord.DiscordException):
     error_embed: discord.Embed = discord.Embed(title="Erreur", description="Une erreur est survenue")
@@ -36,7 +37,8 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error: d
         error_embed.add_field(name="Il manque un argument", value=str(error))
     else:
         error_embed.add_field(name="Une erreur est survenue", value=str(error))
-
+    raise error
+    await ctx.respond(embed=error_embed)
 
 # Token importation
 with open("DISCORD_TOKEN.txt", "r") as infile:

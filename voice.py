@@ -55,23 +55,41 @@ class YTDLSource(discord.PCMVolumeTransformer):
                    data=data)
 
 
+# noinspection PyTypeChecker
 class Voice(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.connections = {}
 
+    @commands.slash_command()
+    async def pause(self, ctx: discord.ApplicationContext):
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.pause()
+            await ctx.respond("Paused")
+        else:
+            await ctx.respond("Not playing")
+
     @commands.slash_command(name="play")
-    async def play(self, ctx: commands.Context, words):
+    async def play(self, ctx: discord.Interaction, words):
+        response: discord.InteractionResponse = ctx.response
+        await response.defer(ephemeral=True)
+
+        class MyView(discord.ui.View):
+
+            @discord.ui.button(label="Pause", style=discord.ButtonStyle.primary, emoji="✅")
+            async def button_callback(self, button: discord.Button, interaction: discord.Interaction):
+                ctx.voice_client.pause()
+                button.label = "Resume"
+                button.style = discord.ButtonStyle.success
+                await interaction.response.edit_message(view=self)
+
         vs = VideosSearch(words, limit=1, region="EU")
         # noinspection PyTypeChecker
         url = vs.result()["result"][0]["link"]
-        async with ctx.typing():
-            player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-            ctx.voice_client.play(
-                player, after=lambda e: print(f"Player error: {e}") if e else None
-            )
+        player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+        ctx.voice_client.play(player, after=lambda e: print(f"Player error: {e}") if e else None)
 
-        await ctx.send(f"Playing: {player.title}")
+        await ctx.respond(f"Playing: {player.title}", view=MyView())
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState,

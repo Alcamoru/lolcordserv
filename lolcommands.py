@@ -41,6 +41,10 @@ class Lolbot(commands.Cog):
         self.region = "euw1"
         self.guild: discord.Guild = self.bot.get_guild(1117482753076776982)
 
+    @commands.slash_command()
+    async def button(self, ctx: discord.Interaction):
+        await ctx.respond("Button", view=self.MyView())
+
     # A command to get the user's profile
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="profil", description="Profil du joueur")

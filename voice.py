@@ -70,7 +70,7 @@ class Voice(commands.Cog):
             await ctx.respond("Not playing")
 
     @commands.slash_command(name="play")
-    async def play(self, ctx: discord.Interaction, words):
+    async def play(self, ctx: discord.ApplicationContext, words):
         response: discord.InteractionResponse = ctx.response
         await response.defer(ephemeral=True)
 

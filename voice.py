@@ -62,14 +62,6 @@ class Voice(commands.Cog):
         self.connections = {}
         self.last_play = tuple()
 
-    @commands.Cog.listener()
-    async def on_application_command(self, ctx: discord.ApplicationContext):
-        command = ctx.command
-        args = ctx.interaction.data
-        if isinstance(command, commands.Command):
-            if command.name == "play":
-                pass
-
     @commands.slash_command(name="play")
     async def play(self, ctx: discord.ApplicationContext, words):
         response: discord.InteractionResponse = ctx.response
@@ -117,9 +109,9 @@ class Voice(commands.Cog):
         await ctx.respond(f"Playing: {player.title}", view=MyView())
         if self.last_play:
             if self.last_play[1].channel == ctx.channel:
-                interaction: discord.Interaction = self.last_play[1].interaction
+                last_play_interaction: discord.Interaction = self.last_play[1].interaction
                 embed = discord.Embed(title="Cette musique s'est terminée", description=f"{self.last_play[0]}")
-                await interaction.edit_original_response(content="", embed=embed, view=None)
+                await last_play_interaction.edit_original_response(content="", embed=embed, view=None)
         self.last_play = (title, ctx)
 
     @commands.Cog.listener()
@@ -162,6 +154,12 @@ class Voice(commands.Cog):
     async def stop(self, ctx: discord.ApplicationContext):
         await ctx.voice_client.disconnect(force=True)
         await ctx.respond("Déconnecté")
+        if self.last_play:
+            if self.last_play[1].channel == ctx.channel:
+                interaction: discord.Interaction = self.last_play[1].interaction
+                embed = discord.Embed(title="Cette musique s'est terminée", description=f"{self.last_play[0]}")
+                await interaction.edit_original_response(content="", embed=embed, view=None)
+        self.last_play = tuple()
 
 
 def setup(bot: commands.Bot):

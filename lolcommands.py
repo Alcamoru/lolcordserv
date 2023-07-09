@@ -41,16 +41,12 @@ class Lolbot(commands.Cog):
         self.region = "euw1"
         self.guild: discord.Guild = self.bot.get_guild(1117482753076776982)
 
-    @commands.slash_command()
-    async def button(self, ctx: discord.Interaction):
-        await ctx.respond("Button", view=self.MyView())
-
     # A command to get the user's profile
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="profil", description="Profil du joueur")
     @commands.cooldown(1, 120, commands.BucketType.user)
     @option(name="invocateur", description="Entrez votre nom d'invocateur")
-    async def profil(self, ctx: discord.Interaction, invocateur):
+    async def profil(self, ctx: discord.ApplicationContext, invocateur):
         try:
             account = self.watcher.summoner.by_name(self.region, invocateur)
             response: discord.InteractionResponse = ctx.response
@@ -120,7 +116,7 @@ class Lolbot(commands.Cog):
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="derniermatch", description="Dernier match du joueur")
     @commands.cooldown(1, 120, commands.BucketType.user)
-    async def derniermatch(self, ctx: discord.Interaction, invocateur):
+    async def derniermatch(self, ctx: discord.ApplicationContext, invocateur):
 
         try:
             response: discord.InteractionResponse = ctx.response

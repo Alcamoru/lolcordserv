@@ -60,36 +60,67 @@ class Voice(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.connections = {}
+        self.last_play = tuple()
 
-    @commands.slash_command()
-    async def pause(self, ctx: discord.ApplicationContext):
-        if ctx.voice_client.is_playing():
-            ctx.voice_client.pause()
-            await ctx.respond("Paused")
-        else:
-            await ctx.respond("Not playing")
+    @commands.Cog.listener()
+    async def on_application_command(self, ctx: discord.ApplicationContext):
+        command = ctx.command
+        args = ctx.interaction.data
+        if isinstance(command, commands.Command):
+            if command.name == "play":
+                pass
 
     @commands.slash_command(name="play")
     async def play(self, ctx: discord.ApplicationContext, words):
         response: discord.InteractionResponse = ctx.response
+        voice_client: discord.VoiceClient = ctx.voice_client
         await response.defer(ephemeral=True)
 
+        # noinspection PyTypeChecker
         class MyView(discord.ui.View):
 
+            def __init__(self):
+                super().__init__()
+
+            @discord.ui.button(label="Volume -", style=discord.ButtonStyle.primary, emoji="🔉")
+            async def button_1_callback(self, button: discord.Button, interaction: discord.Interaction):
+                voice_client.source.volume -= 0.05
+                local_response: discord.InteractionResponse = interaction.response
+                await local_response.edit_message(view=self)
+
             @discord.ui.button(label="Pause", style=discord.ButtonStyle.primary, emoji="✅")
-            async def button_callback(self, button: discord.Button, interaction: discord.Interaction):
-                ctx.voice_client.pause()
-                button.label = "Resume"
-                button.style = discord.ButtonStyle.success
-                await interaction.response.edit_message(view=self)
+            async def button_pause(self, button: discord.Button, interaction: discord.Interaction):
+                local_response: discord.InteractionResponse = interaction.response
+                if not voice_client.is_paused():
+                    voice_client.pause()
+                    button.label = "Reprendre"
+                    button.style = discord.ButtonStyle.success
+                    await local_response.edit_message(view=self)
+                else:
+                    voice_client.resume()
+                    button.label = "Pause"
+                    button.style = discord.ButtonStyle.primary
+                    await local_response.edit_message(view=self)
+
+            @discord.ui.button(label="Volume +", style=discord.ButtonStyle.primary, emoji="🔊")
+            async def button_3_callback(self, button: discord.Button, interaction: discord.Interaction):
+                local_response: discord.InteractionResponse = interaction.response
+                voice_client.source.volume += 0.05
+                await local_response.edit_message(view=self)
 
         vs = VideosSearch(words, limit=1, region="EU")
         # noinspection PyTypeChecker
         url = vs.result()["result"][0]["link"]
+        title = vs.result()["result"][0]["title"]
         player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-        ctx.voice_client.play(player, after=lambda e: print(f"Player error: {e}") if e else None)
-
+        voice_client.play(player, after=lambda e: print(f"Player error: {e}") if e else None)
         await ctx.respond(f"Playing: {player.title}", view=MyView())
+        if self.last_play:
+            if self.last_play[1].channel == ctx.channel:
+                interaction: discord.Interaction = self.last_play[1].interaction
+                embed = discord.Embed(title="Cette musique s'est terminée", description=f"{self.last_play[0]}")
+                await interaction.edit_original_response(content="", embed=embed, view=None)
+        self.last_play = (title, ctx)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState,

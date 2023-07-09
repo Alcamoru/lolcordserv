@@ -175,11 +175,11 @@ class Lolbot(commands.Cog):
 
             for team in last_match["info"]["teams"]:
                 if int(team["teamId"]) == 100 and bool(team["win"]):
-                    blue_side_win = False
-                    red_side_win = True
-                else:
                     blue_side_win = True
                     red_side_win = False
+                else:
+                    blue_side_win = False
+                    red_side_win = True
 
             for player in last_match["info"]["participants"]:
                 deaths = int(player["deaths"])
@@ -196,7 +196,7 @@ class Lolbot(commands.Cog):
                     red_side_kda += f"- ``{kills}/{deaths}/{assists}`` : {round((kills + assists) / deaths, 2)} KDA\n"
                     red_side_damages += f"- ``{damages}``\n"
 
-            embed.add_field(name=f"Blue tea m ({'Victoire' if blue_side_win else 'Défaite'})", value=blue_side_field)
+            embed.add_field(name=f"Blue team ({'Victoire' if blue_side_win else 'Défaite'})", value=blue_side_field)
             embed.add_field(name="KDA", value=blue_side_kda)
             embed.add_field(name="Dégats", value=blue_side_damages)
             embed.add_field(name=f"Red team ({'Victoire' if red_side_win else 'Défaite'})", value=red_side_field)

@@ -1,0 +1,4 @@
+requests
+riotwatcher
+py-cord
+google-api-python-client

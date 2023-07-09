@@ -44,13 +44,13 @@ class Lolbot(commands.Cog):
     # A command to get the user's profile
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="profil", description="Profil du joueur")
-    @commands.cooldown(1, 120, commands.BucketType.user)
+    @commands.cooldown(1, 20, commands.BucketType.user)
     @option(name="invocateur", description="Entrez votre nom d'invocateur")
     async def profil(self, ctx: discord.ApplicationContext, invocateur):
         try:
             account = self.watcher.summoner.by_name(self.region, invocateur)
             response: discord.InteractionResponse = ctx.response
-            await response.defer(ephemeral=True)
+            await response.defer(ephemeral=False)
             # Get user information
             summoner = self.watcher.league.by_summoner(self.region, account["id"])
 
@@ -110,17 +110,17 @@ class Lolbot(commands.Cog):
             embed.add_field(name="L'invocateur est introuvable",
                             value="Veuillez entrer un nom d'invocateur valide")
             file = None
-        await ctx.respond(embed=embed, file=file)
+        await ctx.respond(embed=embed, file=file, ephemeral=False)
 
     # A command to get user's last match information
     @commands.has_role("LOLEUR")
     @commands.slash_command(name="derniermatch", description="Dernier match du joueur")
-    @commands.cooldown(1, 120, commands.BucketType.user)
+    @commands.cooldown(1, 20, commands.BucketType.user)
     async def derniermatch(self, ctx: discord.ApplicationContext, invocateur):
 
         try:
             response: discord.InteractionResponse = ctx.response
-            await response.defer(ephemeral=True)
+            await response.defer(ephemeral=False)
             # User information
             account = self.watcher.summoner.by_name(self.region, invocateur)
             last_match_id: str = self.watcher.match.matchlist_by_puuid(self.region, account["puuid"], count=1)[0]
@@ -143,7 +143,7 @@ class Lolbot(commands.Cog):
                     win = participant["win"]
                     for team in last_match["info"]["teams"]:
                         if team["teamId"] == participant["teamId"]:
-                            kp = participant["kills"] / team["objectives"]["champion"]["kills"] * 100
+                            kp = round(participant["kills"] / team["objectives"]["champion"]["kills"] * 100)
 
             if win:
                 color = discord.Color.from_rgb(36, 218, 71)
@@ -203,7 +203,7 @@ class Lolbot(commands.Cog):
             embed = discord.Embed(title="Erreur", description="Une erreur est survenue", color=discord.Color.red())
             embed.add_field(name="L'invocateur est introuvable",
                             value="Veuillez entrer un nom d'invocateur valide")
-        await ctx.respond(embed=embed)
+        await ctx.respond(embed=embed, ephemeral=False)
 
 
 def setup(bot: commands.Bot):

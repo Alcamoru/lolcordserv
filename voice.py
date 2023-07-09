@@ -1,11 +1,15 @@
 import asyncio
+from pprint import pprint
 
 import discord
 import yt_dlp as youtube_dl
 from discord.ext import commands
-from youtubesearchpython import VideosSearch
+from googleapiclient.discovery import build
 
 youtube_dl.utils.bug_reports_message = lambda: ""
+
+with open("GOOGLE_TOKEN.txt", "r") as infile:
+    GOOGLE_TOKEN = infile.read()
 
 ytdl_format_options = {
     "format": "bestaudio/best",
@@ -55,7 +59,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                    data=data)
 
 
-# noinspection PyTypeChecker
+# noinspection PyTypeChecker,PyUnusedLocal
 class Voice(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -66,9 +70,9 @@ class Voice(commands.Cog):
     async def play(self, ctx: discord.ApplicationContext, words):
         response: discord.InteractionResponse = ctx.response
         voice_client: discord.VoiceClient = ctx.voice_client
-        await response.defer(ephemeral=True)
+        await response.defer(ephemeral=False)
 
-        # noinspection PyTypeChecker
+        # noinspection PyTypeChecker,PyUnusedLocal
         class MyView(discord.ui.View):
 
             def __init__(self):
@@ -76,7 +80,8 @@ class Voice(commands.Cog):
 
             @discord.ui.button(label="Volume -", style=discord.ButtonStyle.primary, emoji="🔉")
             async def button_1_callback(self, button: discord.Button, interaction: discord.Interaction):
-                voice_client.source.volume -= 0.05
+                voice_client.source.volume -= 0.1
+                print(voice_client.source.volume)
                 local_response: discord.InteractionResponse = interaction.response
                 await local_response.edit_message(view=self)
 
@@ -97,22 +102,34 @@ class Voice(commands.Cog):
             @discord.ui.button(label="Volume +", style=discord.ButtonStyle.primary, emoji="🔊")
             async def button_3_callback(self, button: discord.Button, interaction: discord.Interaction):
                 local_response: discord.InteractionResponse = interaction.response
-                voice_client.source.volume += 0.05
+                voice_client.source.volume += 0.1
+                print(voice_client.source.volume)
                 await local_response.edit_message(view=self)
 
-        vs = VideosSearch(words, limit=1, region="EU")
+        youtube = build("youtube", "v3", developerKey=GOOGLE_TOKEN)
+        search_response = youtube.search().list(q=words, part='id', maxResults=1).execute()
         # noinspection PyTypeChecker
-        url = vs.result()["result"][0]["link"]
-        title = vs.result()["result"][0]["title"]
+        video_id = None
+        url = None
+        for item in search_response['items']:
+            if item['id']['kind'] == 'youtube#video':
+                url = 'https://www.youtube.com/watch?v=' + item['id']['videoId']
+                video_id = item["id"]["videoId"]
+
+        video_response = youtube.videos().list(part='snippet', id=video_id).execute()
+        title = video_response['items'][0]['snippet']['title']
         player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
         voice_client.play(player, after=lambda e: print(f"Player error: {e}") if e else None)
         await ctx.respond(f"Playing: {player.title}", view=MyView())
+        await self.is_last_played(ctx)
+        self.last_play = (title, ctx)
+
+    async def is_last_played(self, ctx):
         if self.last_play:
             if self.last_play[1].channel == ctx.channel:
                 last_play_interaction: discord.Interaction = self.last_play[1].interaction
                 embed = discord.Embed(title="Cette musique s'est terminée", description=f"{self.last_play[0]}")
                 await last_play_interaction.edit_original_response(content="", embed=embed, view=None)
-        self.last_play = (title, ctx)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState,
@@ -154,11 +171,7 @@ class Voice(commands.Cog):
     async def stop(self, ctx: discord.ApplicationContext):
         await ctx.voice_client.disconnect(force=True)
         await ctx.respond("Déconnecté")
-        if self.last_play:
-            if self.last_play[1].channel == ctx.channel:
-                interaction: discord.Interaction = self.last_play[1].interaction
-                embed = discord.Embed(title="Cette musique s'est terminée", description=f"{self.last_play[0]}")
-                await interaction.edit_original_response(content="", embed=embed, view=None)
+        await self.is_last_played(ctx)
         self.last_play = tuple()
 
 

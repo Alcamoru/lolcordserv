@@ -2,9 +2,12 @@ import asyncio
 from pprint import pprint
 
 import discord
+import requests.exceptions
 import yt_dlp as youtube_dl
+from yt_dlp import YoutubeDL
 from discord.ext import commands
 from googleapiclient.discovery import build
+from requests import get
 
 youtube_dl.utils.bug_reports_message = lambda: ""
 
@@ -24,12 +27,23 @@ ytdl_format_options = {
     "default_search": "auto",
     "source_address": (
         "0.0.0.0"
-    ),
+    )
 }
 
 ffmpeg_options = {"options": "-vn"}
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+
+def search(arg):
+    with YoutubeDL(ytdl_format_options) as ydl:
+        try:
+            get(arg)
+        except requests.exceptions.MissingSchema or requests.exceptions.InvalidURL:
+            video = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
+        else:
+            video = ydl.extract_info(arg, download=False)
+    return video
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -81,7 +95,6 @@ class Voice(commands.Cog):
             @discord.ui.button(label="Volume -", style=discord.ButtonStyle.primary, emoji="🔉")
             async def button_1_callback(self, button: discord.Button, interaction: discord.Interaction):
                 voice_client.source.volume -= 0.1
-                print(voice_client.source.volume)
                 local_response: discord.InteractionResponse = interaction.response
                 await local_response.edit_message(view=self)
 
@@ -103,21 +116,13 @@ class Voice(commands.Cog):
             async def button_3_callback(self, button: discord.Button, interaction: discord.Interaction):
                 local_response: discord.InteractionResponse = interaction.response
                 voice_client.source.volume += 0.1
-                print(voice_client.source.volume)
                 await local_response.edit_message(view=self)
 
-        youtube = build("youtube", "v3", developerKey=GOOGLE_TOKEN)
-        search_response = youtube.search().list(q=words, part='id', maxResults=1).execute()
         # noinspection PyTypeChecker
-        video_id = None
-        url = None
-        for item in search_response['items']:
-            if item['id']['kind'] == 'youtube#video':
-                url = 'https://www.youtube.com/watch?v=' + item['id']['videoId']
-                video_id = item["id"]["videoId"]
+        video = search(words)
+        url = video["original_url"]
+        title = video["title"]
 
-        video_response = youtube.videos().list(part='snippet', id=video_id).execute()
-        title = video_response['items'][0]['snippet']['title']
         player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
         voice_client.play(player, after=lambda e: print(f"Player error: {e}") if e else None)
         await ctx.respond(f"Playing: {player.title}", view=MyView())
@@ -155,7 +160,7 @@ class Voice(commands.Cog):
                 await ctx.author.voice.channel.connect()
             else:
                 await ctx.send("Vous n'êtes pas connectés à un channel vocal")
-                raise commands.CommandError("Author not connected to a voice channel.")
+                raise commands.CommandError("Vous n'êtes pas connectés au channel vocal")
         elif ctx.voice_client.is_playing():
             ctx.voice_client.stop()
 

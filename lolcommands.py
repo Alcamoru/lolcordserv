@@ -4,6 +4,7 @@ from typing import TextIO
 
 import discord
 import requests
+from discord.commands import SlashCommandGroup
 from discord.commands import option
 from discord.ext import commands
 from riotwatcher import LolWatcher
@@ -40,6 +41,8 @@ class Lolbot(commands.Cog):
         self.watcher = LolWatcher(api_key=RIOT_TOKEN)
         self.region = "euw1"
         self.guild: discord.Guild = self.bot.get_guild(1117482753076776982)
+
+    stats = SlashCommandGroup(name="stats", description="Les commandes relatives aux statistiques du jeu")
 
     # A command to get the user's profile
     @commands.has_role("LOLEUR")

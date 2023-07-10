@@ -46,7 +46,7 @@ class Lolbot(commands.Cog):
 
     # A command to get the user's profile
     @commands.has_role("LOLEUR")
-    @commands.slash_command(name="profil", description="Profil du joueur")
+    @stats.command(name="profil", description="Profil du joueur")
     @commands.cooldown(1, 20, commands.BucketType.user)
     @option(name="invocateur", description="Entrez votre nom d'invocateur")
     async def profil(self, ctx: discord.ApplicationContext, invocateur):
@@ -117,7 +117,7 @@ class Lolbot(commands.Cog):
 
     # A command to get user's last match information
     @commands.has_role("LOLEUR")
-    @commands.slash_command(name="derniermatch", description="Dernier match du joueur")
+    @stats.command(name="derniermatch", description="Dernier match du joueur")
     @commands.cooldown(1, 20, commands.BucketType.user)
     async def derniermatch(self, ctx: discord.ApplicationContext, invocateur):
 

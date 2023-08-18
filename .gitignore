@@ -1,2 +1,5 @@
 DISCORD_TOKEN.txt
 RIOT_TOKEN.txt
+
+venv
+.idea

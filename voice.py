@@ -6,13 +6,9 @@ import requests.exceptions
 import yt_dlp as youtube_dl
 from yt_dlp import YoutubeDL
 from discord.ext import commands
-from googleapiclient.discovery import build
 from requests import get
 
 youtube_dl.utils.bug_reports_message = lambda: ""
-
-with open("GOOGLE_TOKEN.txt", "r") as infile:
-    GOOGLE_TOKEN = infile.read()
 
 ytdl_format_options = {
     "format": "bestaudio/best",

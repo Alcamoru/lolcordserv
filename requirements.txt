@@ -1,5 +1,3 @@
-requests
 riotwatcher
-py-cord
-google-api-python-client
-youtube_dl
+py-cord@git+https://github.com/Pycord-Development/pycord
+requests

@@ -172,13 +172,14 @@ class Lolbot(commands.Cog):
             blue_side_win = None
             red_side_win = None
 
-            for team in last_match["info"]["teams"]:
-                if int(team["teamId"]) == 100 and bool(team["win"]):
-                    blue_side_win = True
-                    red_side_win = False
-                else:
-                    blue_side_win = False
-                    red_side_win = True
+            team = last_match["info"]["teams"][0]
+
+            if int(team["teamId"]) == 100 and bool(team["win"]):
+                blue_side_win = True
+                red_side_win = False
+            else:
+                blue_side_win = False
+                red_side_win = True
 
             for player in last_match["info"]["participants"]:
                 deaths = int(player["deaths"])
